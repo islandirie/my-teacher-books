@@ -1,0 +1,25 @@
+# Dependencies and build output
+node_modules
+dist
+*.tsbuildinfo
+coverage
+*.log
+
+# Secrets and local config (the Google client ID in .env is public, but stays local)
+.env
+.env.*
+!.env.example
+client_secret*.json
+
+# OS and tool noise
+.DS_Store
+.playwright-mcp
+
+# AI / OpenSpec tooling (local only)
+openspec
+AGENTS.md
+.opencode
+.github/agents
+.github/prompts
+.github/skills
+.github/workflows/copilot-setup-steps.yml
