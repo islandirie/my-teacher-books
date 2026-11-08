@@ -52,10 +52,10 @@ jobs:
           --exclude "assets/*" --delete
           --cache-control "no-cache"
 
+      # Every shell file is served with Cache-Control: no-cache, so this is belt and braces. The role
+      # intentionally cannot wait on it (that needs cloudfront:GetInvalidation).
       - name: Invalidate CloudFront
-        run: |
-          id=$(aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/*" --query Invalidation.Id --output text)
-          aws cloudfront wait invalidation-completed --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --id "$id"
+        run: aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths "/*"
 
       - name: Smoke test
         run: curl -fsS https://myteacherbooks.com/ | grep -q "My Teacher Books"
