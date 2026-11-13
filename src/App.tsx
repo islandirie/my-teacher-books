@@ -70,9 +70,10 @@ export function App() {
   );
 
   const renameLibrary = useCallback(
-    async (name: string) => {
-      if (!activeLibrary) return;
-      const lib = await libraryRepo.rename(activeLibrary.id, name);
+    async (name: string, libraryId?: string) => {
+      const id = libraryId ?? activeLibrary?.id;
+      if (!id) return;
+      const lib = await libraryRepo.rename(id, name);
       setActiveLibrary(lib);
       setLibraries(await libraryRepo.getAll());
     },
