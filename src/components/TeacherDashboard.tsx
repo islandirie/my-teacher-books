@@ -22,7 +22,7 @@ interface TeacherDashboardProps {
   settingsRepo: SettingsRepository;
   onSwitchLibrary: (libraryId: string) => void;
   onCreateLibrary: (name: string) => void;
-  onRenameLibrary: (name: string) => void;
+  onRenameLibrary: (name: string, libraryId?: string) => void;
   onLaunchKiosk: () => void;
   onRefreshSettings: () => void;
   onToggleTheme?: () => void;
@@ -54,11 +54,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [isLibraryModalOpen, setIsLibraryModalOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [libraryNameInput, setLibraryNameInput] = useState('');
+  const [isLibraryPopoverOpen, setIsLibraryPopoverOpen] = useState(false);
+  const [renamingLibraryId, setRenamingLibraryId] = useState<string | null>(null);
   const tabRefs = useRef<Record<TabType, HTMLButtonElement | null>>({ catalog: null, roster: null, loans: null, settings: null });
+  const popoverRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     tabRefs.current[activeTab]?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }, [activeTab]);
+
+  useEffect(() => {
+    if (!isLibraryPopoverOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setIsLibraryPopoverOpen(false);
+      }
+    };
+    const timer = setTimeout(() => document.addEventListener('click', handleClick), 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', handleClick);
+    };
+  }, [isLibraryPopoverOpen]);
 
   const openCreate = () => {
     setIsRenaming(false);
@@ -69,14 +86,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const openRename = () => {
     setIsRenaming(true);
     setLibraryNameInput(activeLibrary.name);
+    setRenamingLibraryId(activeLibrary.id);
     setIsLibraryModalOpen(true);
+  };
+
+  const openRenameFor = (lib: Library) => {
+    setIsRenaming(true);
+    setLibraryNameInput(lib.name);
+    setRenamingLibraryId(lib.id);
+    setIsLibraryModalOpen(true);
+    setIsLibraryPopoverOpen(false);
   };
 
   const submitLibrary = (e: React.FormEvent) => {
     e.preventDefault();
     const name = libraryNameInput.trim();
     if (!name) return;
-    if (isRenaming) onRenameLibrary(name);
+    if (isRenaming) onRenameLibrary(name, renamingLibraryId ?? undefined);
     else onCreateLibrary(name);
     setIsLibraryModalOpen(false);
   };
@@ -137,8 +163,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        {/* Library switcher + tab strip */}
-        <div className="max-w-6xl mx-auto px-4 pb-2 flex items-center justify-between gap-2 border-t border-slate-100 dark:border-[#2a2f5a]">
+        {/* Desktop: Library switcher + tab strip */}
+        <div className="hidden sm:flex max-w-6xl mx-auto px-4 pb-2 items-center justify-between gap-2 border-t border-slate-100 dark:border-[#2a2f5a]">
           <div className="flex items-center space-x-1">
             <LibraryIcon className="w-4 h-4 text-slate-400 shrink-0" />
             <select
@@ -200,6 +226,80 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               );
             })}
           </div>
+        </div>
+
+        {/* Mobile: icon row + add library button */}
+        <div className="sm:hidden max-w-6xl mx-auto px-2 pb-2 border-t border-slate-100 dark:border-[#2a2f5a]">
+          <div className="relative">
+            <div className="flex justify-around items-center py-2">
+              <button
+                onClick={() => setIsLibraryPopoverOpen(!isLibraryPopoverOpen)}
+                className={`p-2 border-b-2 transition cursor-pointer ${isLibraryPopoverOpen ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400' : 'border-transparent text-slate-500 dark:text-slate-400'}`}
+                aria-label="Switch library"
+              >
+                <LibraryIcon className="w-5 h-5" />
+              </button>
+              {(['catalog', 'roster', 'loans', 'settings'] as TabType[]).map((tab) => {
+                const icons: Record<TabType, React.ReactNode> = {
+                  catalog: <BookOpen className="w-5 h-5" />,
+                  roster: <Users className="w-5 h-5" />,
+                  loans: <Clock className="w-5 h-5" />,
+                  settings: <Settings className="w-5 h-5" />
+                };
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    aria-label={tab}
+                    className={`p-2 border-b-2 transition cursor-pointer ${
+                      activeTab === tab
+                        ? 'border-indigo-600 dark:border-indigo-400 text-indigo-600 dark:text-indigo-400'
+                        : 'border-transparent text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {icons[tab]}
+                  </button>
+                );
+              })}
+            </div>
+
+            {isLibraryPopoverOpen && (
+                <div
+                  ref={popoverRef}
+                  className="absolute top-full left-2 right-2 z-50 mt-1 bg-white dark:bg-[#181b34] rounded-2xl shadow-2xl border border-slate-200 dark:border-[#2a2f5a] py-1"
+                >
+                  {libraries.map((lib) => (
+                    <div
+                      key={lib.id}
+                      className="flex items-center px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-[#1f2347] transition"
+                    >
+                      <button
+                        onClick={() => { onSwitchLibrary(lib.id); setIsLibraryPopoverOpen(false); }}
+                        className="flex-1 text-left text-sm font-medium text-slate-800 dark:text-slate-200 cursor-pointer"
+                      >
+                        {lib.name}
+                      </button>
+                      <button
+                        onClick={() => openRenameFor(lib)}
+                        aria-label={`Rename ${lib.name}`}
+                        className="p-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-pointer"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
+                      <span className={`w-2 h-2 rounded-full ml-1.5 shrink-0 ${lib.id === activeLibrary.id ? 'bg-emerald-500' : 'bg-transparent'}`} />
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={openCreate}
+            className="w-full mt-2 py-2 text-sm font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-[#1f2347] hover:bg-indigo-100 dark:hover:bg-[#2b3060] rounded-xl flex items-center justify-center space-x-1.5 transition cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Library</span>
+          </button>
         </div>
       </header>
 

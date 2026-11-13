@@ -16,7 +16,10 @@ Parameters:
     Description: ARN of the existing token.actions.githubusercontent.com IAM OIDC provider.
   GitHubRepo:
     Type: String
-    Default: islandirie/my-teacher-books
+    Description: >-
+      Repo path exactly as in GitHub's OIDC subject claim. This repo uses immutable subjects, so it is
+      owner@ownerId/repo@repoId (see `gh api repos/OWNER/REPO/actions/oidc/customization/sub`).
+    Default: islandirie@3815047/my-teacher-books@1450019127
   DeployBranch:
     Type: String
     Default: main
