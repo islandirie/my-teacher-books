@@ -38,7 +38,18 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           {
             fps: 10,
             qrbox: { width: 260, height: 160 },
-            aspectRatio: 1.333333
+            aspectRatio: 1.333333,
+            // Force continuous autofocus; Samsung/Chrome defaults to fixed focus
+            // and barcodes stay blurry. `advanced` is honored where the top-level
+            // key is ignored, and both are soft constraints so unsupported devices
+            // just skip them.
+            videoConstraints: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              focusMode: 'continuous',
+              advanced: [{ focusMode: 'continuous' }]
+            } as unknown as MediaTrackConstraints
           },
           (decodedText) => {
             if (!isMounted) return;
